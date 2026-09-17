@@ -122,6 +122,21 @@ if [[ "$ACTUAL_BUNDLE_ID" != "$CLONE_BUNDLE_ID" ]]; then
 fi
 
 blue "$(localize "[4/6] Re-signing the copy and its nested components..." "[4/6] 重新签署副本及其内部组件…")"
+# Newer builds put real libraries in Resources and forwarding stubs in
+# Frameworks. Re-signing the stubs alone leaves unresolved runtime targets.
+# Copy only matching payloads supplied by this same app version.
+RESOURCE_CODE=("$BUILD_APP"/Contents/Resources/*.framework(N) "$BUILD_APP"/Contents/Resources/*.dylib(N))
+for RESOURCE_ITEM in "${RESOURCE_CODE[@]}"; do
+  FRAMEWORK_TARGET="$BUILD_APP/Contents/Frameworks/${RESOURCE_ITEM:t}"
+  if [[ -e "$FRAMEWORK_TARGET" ]]; then
+    ditto "$RESOURCE_ITEM" "$FRAMEWORK_TARGET" || fail "$(localize "Could not install the bundled runtime library." "无法复制应用自带的运行库。")"
+  fi
+  # Resources is not a standard nested-code location for codesign --deep.
+  if ! codesign --force --deep --sign - "$RESOURCE_ITEM" >"$BUILD_DIR/resource-sign.log" 2>&1; then
+    cat "$BUILD_DIR/resource-sign.log" >&2
+    fail "$(localize "Could not sign a resource library." "资源目录中的运行库签名失败。")"
+  fi
+done
 if ! codesign --force --deep --sign - "$BUILD_APP" >"$BUILD_DIR/codesign.log" 2>&1; then
   tail -40 "$BUILD_DIR/codesign.log" >&2
   fail "$(localize "Re-signing failed." "重新签名失败。")"
@@ -132,6 +147,11 @@ if ! codesign --verify --deep --strict --verbose=2 "$BUILD_APP" >"$BUILD_DIR/ver
   cat "$BUILD_DIR/verify.log" >&2
   fail "$(localize "Signature verification failed. The previous copy has not been replaced." "新副本签名验证失败。旧副本尚未被替换。")"
 fi
+for RESOURCE_ITEM in "${RESOURCE_CODE[@]}"; do
+  if ! codesign --verify --deep --strict "$RESOURCE_ITEM"; then
+    fail "$(localize "Resource library verification failed." "资源目录中的运行库校验失败。")"
+  fi
+done
 
 if pgrep -f "$CLONE_PROCESS_PATTERN" >/dev/null 2>&1; then
   yellow "$(localize "Asking the running WeChat 2 to quit..." "正在退出当前运行的微信 2…")"
@@ -162,8 +182,9 @@ fi
 
 if ! mv "$BUILD_APP" "$CLONE_APP"; then
   if [[ -n "$BACKUP_APP" && -d "$BACKUP_APP" && ! -e "$CLONE_APP" ]]; then
-    mv "$BACKUP_APP" "$CLONE_APP" || true
-    BACKUP_APP=""
+    if mv "$BACKUP_APP" "$CLONE_APP"; then
+      BACKUP_APP=""
+    fi
   fi
   fail "$(localize "Could not install the new copy; attempted to restore the previous copy." "无法安装新副本；已尝试恢复旧副本。")"
 fi
@@ -172,9 +193,9 @@ cleanup
 BUILD_DIR=""
 
 blue "$(localize "[6/6] Starting and checking both WeChat instances..." "[6/6] 启动并检查两个微信实例…")"
-open "$SOURCE_APP"
-open "$CLONE_APP"
-sleep 8
+open "$SOURCE_APP" || fail "$(localize "Could not launch the original app." "原版微信启动失败。")"
+open "$CLONE_APP" || fail "$(localize "Could not launch the new copy. The previous copy remains in Trash." "新副本启动失败，旧副本仍在废纸篓中。")"
+sleep 15
 
 SOURCE_RUNNING="$(localize "no" "否")"
 CLONE_RUNNING="$(localize "no" "否")"

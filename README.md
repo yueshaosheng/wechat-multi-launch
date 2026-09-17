@@ -1,7 +1,7 @@
 # 微信双开
 
 ![Platform: macOS](https://img.shields.io/badge/platform-macOS-black?logo=apple)
-![Verified WeChat: 4.1.13](https://img.shields.io/badge/WeChat-4.1.13_verified-07C160?logo=wechat&logoColor=white)
+![Verified WeChat: 4.1.15](https://img.shields.io/badge/WeChat-4.1.15_verified-07C160?logo=wechat&logoColor=white)
 [![Latest release](https://img.shields.io/github/v/release/yueshaosheng/wechat-dual-launch)](https://github.com/yueshaosheng/wechat-dual-launch/releases/latest)
 
 **简体中文** | [English](README.en.md)
@@ -12,7 +12,7 @@ macOS 微信双开脚本，支持中文 / English，可创建或重建 `WeChat2.
 
 - **仅适用于 macOS**，不适用于 Windows、Linux、iOS 或 Android。
 - 原版微信需安装在 `/Applications/WeChat.app`，当前账户需有“应用程序”目录的写入权限。
-- **已验证微信版本：Mac 微信 4.1.13**。已确认原版与副本同时运行、副本创建独立数据目录；未全面验证所有功能，其他版本兼容性待验证。
+- **已验证微信版本：Mac 微信 4.1.15（修复版 v1.0.1）**，测试环境为 macOS 26.3 / Apple Silicon。已完成脚本重建、双进程运行和独立数据目录检查；未全面验证消息收发及音视频等功能。此前 v1.0.0 在 4.1.13 上通过双开检查，但无法用于本机 4.1.15。
 
 ## 使用方法
 
@@ -26,7 +26,9 @@ macOS 微信双开脚本，支持中文 / English，可创建或重建 `WeChat2.
 
 脚本依次复制原版应用、修改 Bundle ID 为 `com.tencent.xinWeChat2`、重新签名并验证，最后安装副本并检查两个进程是否同时运行。新副本通过验证后，旧副本才会移到废纸篓。
 
-副本使用 ad-hoc 临时签名，不保留腾讯的开发者签名，部分功能或权限可能受影响。
+针对 4.1.15，脚本将 Resources 中同版本的实际运行库复制到 Frameworks 对应位置，替换重签后无法正常工作的转发库，并单独签名验证 Resources 中的运行库。
+
+副本使用 ad-hoc 临时签名，不保留腾讯的开发者签名、原版权限声明和 Hardened Runtime 配置。安全保护及部分功能可能受影响，独立数据目录不等于原版沙盒隔离。
 
 ## 更新与数据
 

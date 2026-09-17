@@ -1,7 +1,7 @@
 # WeChat Dual Launch
 
 ![Platform: macOS](https://img.shields.io/badge/platform-macOS-black?logo=apple)
-![Verified WeChat: 4.1.13](https://img.shields.io/badge/WeChat-4.1.13_verified-07C160?logo=wechat&logoColor=white)
+![Verified WeChat: 4.1.15](https://img.shields.io/badge/WeChat-4.1.15_verified-07C160?logo=wechat&logoColor=white)
 [![Latest release](https://img.shields.io/github/v/release/yueshaosheng/wechat-dual-launch)](https://github.com/yueshaosheng/wechat-dual-launch/releases/latest)
 
 [简体中文](README.md) | **English**
@@ -12,7 +12,7 @@ A macOS script to create or rebuild `WeChat2.app`, with Chinese and English prom
 
 - **macOS only.** Not for Windows, Linux, iOS or Android.
 - Install the original app at `/Applications/WeChat.app`. Your account needs write access to Applications.
-- **Verified version: WeChat for Mac 4.1.13.** The original and copy were observed running together, with a separate data directory for the copy. Not all features have been tested; compatibility with other versions is unverified.
+- **Verified version: WeChat for Mac 4.1.15 with v1.0.1**, on macOS 26.3 / Apple Silicon. A full script rebuild, concurrent processes and a separate data directory were checked. Messaging, calls and other features have not been fully tested. Previously, v1.0.0 passed dual-launch checks with 4.1.13 but failed with 4.1.15 on this machine.
 
 ## Usage
 
@@ -26,7 +26,9 @@ You do not need to delete the existing copy first or use `sudo`. If double-click
 
 The script copies the original app, changes its Bundle ID to `com.tencent.xinWeChat2`, re-signs and verifies it, installs the copy, and checks whether both processes are running. The previous copy moves to Trash only after the new copy passes verification.
 
-The copy uses an ad-hoc signature instead of Tencent's developer signature. Some features or permissions may be affected.
+For 4.1.15, the script copies matching runtime libraries from Resources into Frameworks, replacing forwarding stubs that failed after re-signing. It also explicitly signs and verifies runtime libraries in Resources.
+
+The copy uses ad-hoc signing and does not preserve Tencent's developer identity, original entitlements or Hardened Runtime configuration. Security protections and some features may be affected; a separate data directory does not imply the original sandbox isolation.
 
 ## Updates and data
 
