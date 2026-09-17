@@ -2,7 +2,7 @@
 
 ![Platform: macOS](https://img.shields.io/badge/platform-macOS-black?logo=apple)
 ![Verified WeChat: 4.1.15](https://img.shields.io/badge/WeChat-4.1.15_verified-07C160?logo=wechat&logoColor=white)
-[![Latest release](https://img.shields.io/github/v/release/yueshaosheng/wechat-dual-launch)](https://github.com/yueshaosheng/wechat-dual-launch/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/yueshaosheng/wechat-multi-launch)](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest)
 
 **简体中文** | [English](README.en.md)
 
@@ -16,7 +16,7 @@ macOS 微信多开脚本，支持中文 / English，可按总开数创建或重�
 
 ## 使用方法
 
-1. 从 [Releases](https://github.com/yueshaosheng/wechat-dual-launch/releases/latest) 下载并解压安装包，双击 `WeChat-Multi-Launch.command`。
+1. 从 [Releases](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest) 下载并解压安装包，双击 `WeChat-Multi-Launch.command`。
 2. 选择语言：`1` 中文（默认），`2` English。
 3. 输入总开数 `2`～`9`（包含原版），再输入 `y` 开始。例如输入 `4` 会创建或重建 `WeChat2.app`、`WeChat3.app` 和 `WeChat4.app`。
 

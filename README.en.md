@@ -2,7 +2,7 @@
 
 ![Platform: macOS](https://img.shields.io/badge/platform-macOS-black?logo=apple)
 ![Verified WeChat: 4.1.15](https://img.shields.io/badge/WeChat-4.1.15_verified-07C160?logo=wechat&logoColor=white)
-[![Latest release](https://img.shields.io/github/v/release/yueshaosheng/wechat-dual-launch)](https://github.com/yueshaosheng/wechat-dual-launch/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/yueshaosheng/wechat-multi-launch)](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest)
 
 [简体中文](README.md) | **English**
 
@@ -16,7 +16,7 @@ A macOS script to create or rebuild multiple copies from `WeChat2.app` through `
 
 ## Usage
 
-1. Download and extract the package from [Releases](https://github.com/yueshaosheng/wechat-dual-launch/releases/latest), then double-click `WeChat-Multi-Launch.command`.
+1. Download and extract the package from [Releases](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest), then double-click `WeChat-Multi-Launch.command`.
 2. Select `1` for Chinese (default) or `2` for English.
 3. Enter a total instance count from `2` through `9`, including the original, then enter `y`. For example, `4` creates or rebuilds `WeChat2.app`, `WeChat3.app` and `WeChat4.app`.
 
