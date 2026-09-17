@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Select once per run; all operations below share the same implementation.
-printf '%s\n' '微信双开 / WeChat Dual Launch' '1. 中文（默认）' '2. English'
+printf '%s\n' '微信多开 / WeChat Multi Launch' '1. 中文（默认）' '2. English'
 printf '%s' '选择语言 / Choose language [1/2]: '
 read -r UI_LANGUAGE
 [[ "$UI_LANGUAGE" == "2" ]] || UI_LANGUAGE="1"
@@ -17,15 +17,13 @@ localize() {
 }
 
 SOURCE_APP="/Applications/WeChat.app"
-CLONE_APP="/Applications/WeChat2.app"
-CLONE_BUNDLE_ID="com.tencent.xinWeChat2"
-CLONE_DATA_DIR="$HOME/Library/Containers/com.tencent.xinWeChat2"
 SCRIPT_DIR="${0:A:h}"
 CUSTOM_ICON_DIR="$SCRIPT_DIR/wechat_icons"
 BUILD_DIR=""
 BUILD_APP=""
 BACKUP_APP=""
-CLONE_PROCESS_PATTERN='^/Applications/WeChat2\.app/Contents/MacOS/WeChat( |$)'
+BACKUP_APPS=()
+BUILT_CLONES=()
 SOURCE_PROCESS_PATTERN='^/Applications/WeChat\.app/Contents/MacOS/WeChat( |$)'
 
 blue() {
@@ -50,7 +48,7 @@ pause_before_close() {
 }
 
 cleanup() {
-  if [[ -n "${BUILD_DIR:-}" && "$BUILD_DIR" == /Applications/.wechat2-build.* && -d "$BUILD_DIR" ]]; then
+  if [[ -n "${BUILD_DIR:-}" && "$BUILD_DIR" == /Applications/.wechat-multi-build.* && -d "$BUILD_DIR" ]]; then
     rm -rf -- "$BUILD_DIR"
   fi
 }
@@ -67,12 +65,11 @@ fail() {
 trap cleanup EXIT INT TERM
 
 printf '\033c'
-blue "$(localize "WeChat Dual Launch" "微信双开 / WeChat Dual Launch")"
+blue "$(localize "WeChat Multi Launch" "微信多开 / WeChat Multi Launch")"
 printf '%s\n' "----------------------------------------"
-printf '%s\n' "$(localize "Rebuild WeChat2.app from the installed WeChat.app." "它会从最新版 WeChat.app 重建 WeChat2.app。")"
-printf '%s\n' "$(localize "Manual icon instructions will appear when finished." "完成后会显示手动更换 WeChat2.app 图标的方法。")"
-printf '%s\n' "$(localize "The existing app copy will move to Trash. This data directory is preserved:" "现有副本会移到废纸篓，不会删除第二个微信的数据目录：")"
-printf '  %s\n\n' "$CLONE_DATA_DIR"
+printf '%s\n' "$(localize "Create WeChat2.app, WeChat3.app and more from the installed WeChat.app." "从最新版 WeChat.app 创建 WeChat2.app、WeChat3.app 等多个副本。")"
+printf '%s\n' "$(localize "Each copy uses its own Bundle ID and data directory." "每个副本使用独立的 Bundle ID 和数据目录。")"
+printf '%s\n\n' "$(localize "Existing app copies move to Trash only after replacements pass verification." "新副本通过验证后，已有应用副本才会移到废纸篓。")"
 
 if (( EUID == 0 )); then
   fail "$(localize "Double-click this script; do not run it with sudo." "请直接双击运行，不要通过 sudo 启动此脚本。")"
@@ -92,11 +89,18 @@ fi
 
 SOURCE_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$SOURCE_APP/Contents/Info.plist" 2>/dev/null || printf "$(localize 'unknown' '未知')")
 printf "$(localize 'Installed WeChat version: %s\n' '检测到原版微信版本：%s\n')" "$SOURCE_VERSION"
-if [[ -d "$CLONE_APP" ]]; then
-  blue "$(localize 'Existing copy: will move to Trash after verification.' '现有副本：验证新副本后移到废纸篓。')"
-else
-  blue "$(localize 'Existing copy: absent.' '现有副本：不存在。')"
+printf "$(localize 'Total instances, including the original [2-9]: ' '请输入总开数，包含原版微信 [2-9]：')"
+read -r TOTAL_INSTANCES
+
+if [[ ! "$TOTAL_INSTANCES" =~ '^[2-9]$' ]]; then
+  fail "$(localize "Enter one number from 2 through 9." "请输入 2 到 9 之间的一个数字。")"
 fi
+
+printf "$(localize '\nThe following copies will be created or rebuilt:\n' '\n将创建或重建以下副本：\n')"
+for (( CLONE_INDEX = 2; CLONE_INDEX <= TOTAL_INSTANCES; CLONE_INDEX++ )); do
+  printf '  /Applications/WeChat%s.app\n' "$CLONE_INDEX"
+  printf '  %s/Library/Containers/com.tencent.xinWeChat%s\n' "$HOME" "$CLONE_INDEX"
+done
 printf "$(localize '\nType y and press Return to start; anything else cancels: ' '\n输入 y 并按回车开始，输入其他内容取消：')"
 read -r CONFIRMATION
 
@@ -106,9 +110,18 @@ if [[ "$CONFIRMATION" != "y" && "$CONFIRMATION" != "Y" ]]; then
   exit 0
 fi
 
+for (( CLONE_INDEX = 2; CLONE_INDEX <= TOTAL_INSTANCES; CLONE_INDEX++ )); do
+CLONE_APP="/Applications/WeChat${CLONE_INDEX}.app"
+CLONE_BUNDLE_ID="com.tencent.xinWeChat${CLONE_INDEX}"
+CLONE_DATA_DIR="$HOME/Library/Containers/com.tencent.xinWeChat${CLONE_INDEX}"
+CLONE_PROCESS_PATTERN="^/Applications/WeChat${CLONE_INDEX}\\.app/Contents/MacOS/WeChat( |$)"
+BACKUP_APP=""
+
+printf '\n'
+blue "$(localize "Building WeChat${CLONE_INDEX}.app" "正在构建 WeChat${CLONE_INDEX}.app")"
 blue "$(localize "[1/6] Creating a temporary build directory..." "[1/6] 创建临时构建目录…")"
-BUILD_DIR=$(mktemp -d /Applications/.wechat2-build.XXXXXX)
-BUILD_APP="$BUILD_DIR/WeChat2.app"
+BUILD_DIR=$(mktemp -d /Applications/.wechat-multi-build.XXXXXX)
+BUILD_APP="$BUILD_DIR/WeChat${CLONE_INDEX}.app"
 
 blue "$(localize "[2/6] Copying the installed WeChat app (may take a few minutes)..." "[2/6] 复制最新版微信（约需数秒至数分钟）…")"
 ditto "$SOURCE_APP" "$BUILD_APP" || fail "$(localize "Could not copy WeChat." "复制微信失败。")"
@@ -154,8 +167,8 @@ for RESOURCE_ITEM in "${RESOURCE_CODE[@]}"; do
 done
 
 if pgrep -f "$CLONE_PROCESS_PATTERN" >/dev/null 2>&1; then
-  yellow "$(localize "Asking the running WeChat 2 to quit..." "正在退出当前运行的微信 2…")"
-  osascript -e 'tell application id "com.tencent.xinWeChat2" to quit' >/dev/null 2>&1 || true
+  yellow "$(localize "Asking WeChat ${CLONE_INDEX} to quit..." "正在退出微信 ${CLONE_INDEX}…")"
+  osascript -e "tell application id \"$CLONE_BUNDLE_ID\" to quit" >/dev/null 2>&1 || true
 
   for _attempt in {1..20}; do
     if ! pgrep -f "$CLONE_PROCESS_PATTERN" >/dev/null 2>&1; then
@@ -165,16 +178,16 @@ if pgrep -f "$CLONE_PROCESS_PATTERN" >/dev/null 2>&1; then
   done
 
   if pgrep -f "$CLONE_PROCESS_PATTERN" >/dev/null 2>&1; then
-    fail "$(localize "WeChat 2 is still running. Quit it manually and run this script again." "微信 2 仍在运行。请手动退出微信 2 后重新运行脚本。")"
+    fail "$(localize "WeChat ${CLONE_INDEX} is still running. Quit it manually and run this script again." "微信 ${CLONE_INDEX} 仍在运行。请手动退出后重新运行脚本。")"
   fi
 fi
 
 if [[ -e "$CLONE_APP" ]]; then
   BACKUP_STAMP=$(date '+%Y%m%d-%H%M%S')
-  BACKUP_APP="$HOME/.Trash/WeChat2-backup-$BACKUP_STAMP.app"
+  BACKUP_APP="$HOME/.Trash/WeChat${CLONE_INDEX}-backup-$BACKUP_STAMP.app"
 
   if [[ -e "$BACKUP_APP" ]]; then
-    BACKUP_APP="$HOME/.Trash/WeChat2-backup-$BACKUP_STAMP-$$.app"
+    BACKUP_APP="$HOME/.Trash/WeChat${CLONE_INDEX}-backup-$BACKUP_STAMP-$$.app"
   fi
 
   mv "$CLONE_APP" "$BACKUP_APP" || fail "$(localize "Could not move the previous copy to Trash." "无法把旧副本移到废纸篓。")"
@@ -189,40 +202,63 @@ if ! mv "$BUILD_APP" "$CLONE_APP"; then
   fail "$(localize "Could not install the new copy; attempted to restore the previous copy." "无法安装新副本；已尝试恢复旧副本。")"
 fi
 
+BUILT_CLONES+=("$CLONE_APP")
+if [[ -n "$BACKUP_APP" ]]; then
+  BACKUP_APPS+=("$BACKUP_APP")
+fi
 cleanup
 BUILD_DIR=""
+done
 
-blue "$(localize "[6/6] Starting and checking both WeChat instances..." "[6/6] 启动并检查两个微信实例…")"
+blue "$(localize "[6/6] Starting and checking all WeChat instances..." "[6/6] 启动并检查所有微信实例…")"
 open "$SOURCE_APP" || fail "$(localize "Could not launch the original app." "原版微信启动失败。")"
-open "$CLONE_APP" || fail "$(localize "Could not launch the new copy. The previous copy remains in Trash." "新副本启动失败，旧副本仍在废纸篓中。")"
+for CLONE_APP in "${BUILT_CLONES[@]}"; do
+  open "$CLONE_APP" || fail "$(localize "Could not launch ${CLONE_APP:t}. Previous copies remain in Trash." "${CLONE_APP:t} 启动失败，旧副本仍在废纸篓中。")"
+done
 sleep 15
 
-SOURCE_RUNNING="$(localize "no" "否")"
-CLONE_RUNNING="$(localize "no" "否")"
-pgrep -f "$SOURCE_PROCESS_PATTERN" >/dev/null 2>&1 && SOURCE_RUNNING="$(localize "yes" "是")"
-pgrep -f "$CLONE_PROCESS_PATTERN" >/dev/null 2>&1 && CLONE_RUNNING="$(localize "yes" "是")"
+ALL_RUNNING=1
+if pgrep -f "$SOURCE_PROCESS_PATTERN" >/dev/null 2>&1; then
+  SOURCE_RUNNING="$(localize "yes" "是")"
+else
+  SOURCE_RUNNING="$(localize "no" "否")"
+  ALL_RUNNING=0
+fi
 
 printf "$(localize '\nOriginal WeChat running: %s\n' '\n原版微信运行：%s\n')" "$SOURCE_RUNNING"
-printf "$(localize 'WeChat 2 running: %s\n' '微信 2 运行：%s\n')" "$CLONE_RUNNING"
+for (( CLONE_INDEX = 2; CLONE_INDEX <= TOTAL_INSTANCES; CLONE_INDEX++ )); do
+  CLONE_PROCESS_PATTERN="^/Applications/WeChat${CLONE_INDEX}\\.app/Contents/MacOS/WeChat( |$)"
+  if pgrep -f "$CLONE_PROCESS_PATTERN" >/dev/null 2>&1; then
+    CLONE_RUNNING="$(localize "yes" "是")"
+  else
+    CLONE_RUNNING="$(localize "no" "否")"
+    ALL_RUNNING=0
+  fi
+  printf "$(localize 'WeChat %s running: %s\n' '微信 %s 运行：%s\n')" "$CLONE_INDEX" "$CLONE_RUNNING"
+done
 
-if [[ "$SOURCE_RUNNING" != "$(localize "yes" "是")" || "$CLONE_RUNNING" != "$(localize "yes" "是")" ]]; then
-  yellow "$(localize "The new copy is installed and verified, but two running instances were not detected." "新副本已安装且签名验证通过，但没有检测到两个实例同时运行。")"
-  [[ -n "$BACKUP_APP" ]] && yellow "$(localize "Previous copy backup: $BACKUP_APP" "旧副本备份：$BACKUP_APP")"
+if (( ALL_RUNNING == 0 )); then
+  yellow "$(localize "The copies were installed and verified, but not all requested instances are running." "副本均已安装并通过验证，但没有检测到所有请求的微信实例。")"
+  for BACKUP_APP in "${BACKUP_APPS[@]}"; do
+    yellow "$(localize "Previous copy backup: $BACKUP_APP" "旧副本备份：$BACKUP_APP")"
+  done
   pause_before_close
   exit 2
 fi
 
-green "$(localize "Done: original WeChat and WeChat 2 are both running." "完成：原版微信和微信 2 已同时运行。")"
-if [[ -n "$BACKUP_APP" ]]; then
-  printf "$(localize 'Previous copy moved to Trash: %s\n' '旧副本已移到废纸篓：%s\n')" "$BACKUP_APP"
+green "$(localize "Done: all ${TOTAL_INSTANCES} WeChat instances are running." "完成：${TOTAL_INSTANCES} 个微信实例均已运行。")"
+if (( ${#BACKUP_APPS[@]} > 0 )); then
+  for BACKUP_APP in "${BACKUP_APPS[@]}"; do
+    printf "$(localize 'Previous copy moved to Trash: %s\n' '旧副本已移到废纸篓：%s\n')" "$BACKUP_APP"
+  done
   printf '%s\n' "$(localize "Delete the backup manually after checking your second account and chat history." "确认第二个账号和聊天记录正常后，可以手动删除它。")"
 fi
 
 printf '%s\n' "$(localize "If macOS asks for notification, camera or microphone access, grant access as needed." "如果系统询问通知、相机或麦克风权限，请按需要重新授权。")"
 
 printf '\n'
-blue "$(localize "Change the WeChat 2 icon manually" "手动更换微信 2 图标")"
+blue "$(localize "Change copy icons manually" "手动更换副本图标")"
 printf "$(localize 'Icon folder: %s\n' '图标文件夹：%s\n')" "$CUSTOM_ICON_DIR"
-printf '%s\n' "$(localize "1. In Applications, right-click WeChat2.app and choose Get Info." "1. 在“应用程序”中右键点击 WeChat2.app 图标，选择“显示简介”。")"
+printf '%s\n' "$(localize "1. In Applications, right-click a WeChatN.app copy and choose Get Info." "1. 在“应用程序”中右键点击 WeChatN.app 副本，选择“显示简介”。")"
 printf '%s\n' "$(localize "2. Drag an icon from the wechat_icons folder onto the small icon at the top left of the Get Info window to replace it." "2. 将 wechat_icons 文件夹中的图标拖到“显示简介”窗口左上角的小图标上，覆盖原图标。")"
 pause_before_close
