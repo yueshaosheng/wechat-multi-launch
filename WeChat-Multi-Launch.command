@@ -19,6 +19,11 @@ localize() {
 SOURCE_APP="/Applications/WeChat.app"
 SCRIPT_DIR="${0:A:h}"
 CUSTOM_ICON_DIR="$SCRIPT_DIR/wechat_icons"
+# Icon files ship as wechat_<style>.icns; order here is the rotation order.
+ICON_STYLES=(flat classic minimal blue purple dark gradient)
+ICON_MODE="rotate"
+ICON_STYLE=""
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 BUILD_DIR=""
 BUILD_APP=""
 BACKUP_APP=""
@@ -62,13 +67,53 @@ fail() {
   exit 1
 }
 
+# Prints the icon style for a clone index, or returns 1 when the original
+# WeChat icon should be kept.
+icon_style_for_index() {
+  local index="$1"
+  local slot
+  case "$ICON_MODE" in
+    none)  return 1 ;;
+    style) printf '%s' "$ICON_STYLE" ;;
+    *)     slot=$(( ((index - 2) % ${#ICON_STYLES[@]}) + 1 ))
+           printf '%s' "${ICON_STYLES[$slot]}" ;;
+  esac
+}
+
+# Replaces the bundle icon before signing, so the new art is covered by the
+# ad-hoc signature. CFBundleIconName is removed because it points at the
+# AppIcon asset inside Assets.car, which would win over CFBundleIconFile.
+apply_clone_icon() {
+  local style="$1"
+  local app="$2"
+  local index="$3"
+  local source_icon="$CUSTOM_ICON_DIR/wechat-${style}.icns"
+  local plist="$app/Contents/Info.plist"
+  local icon_name="WeChat${index}Icon"
+
+  if [[ ! -f "$source_icon" ]]; then
+    yellow "$(localize "Icon wechat-${style}.icns is missing; keeping the original icon." "缺少 wechat-${style}.icns，保留原图标。")"
+    return 0
+  fi
+
+  ditto "$source_icon" "$app/Contents/Resources/${icon_name}.icns" || fail "$(localize "Could not copy the icon file." "复制图标文件失败。")"
+
+  /usr/libexec/PlistBuddy -c "Delete :CFBundleIconName" "$plist" >/dev/null 2>&1 || true
+  /usr/libexec/PlistBuddy -c "Delete :CFBundleIconFile" "$plist" >/dev/null 2>&1 || true
+  /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string ${icon_name}" "$plist" || fail "$(localize "Could not set the bundle icon." "设置副本图标失败。")"
+
+  if [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$plist")" != "$icon_name" ]]; then
+    fail "$(localize "Icon setting verification failed." "图标设置校验失败。")"
+  fi
+}
+
 trap cleanup EXIT INT TERM
 
 printf '\033c'
 blue "$(localize "WeChat Multi Launch" "微信多开 / WeChat Multi Launch")"
 printf '%s\n' "----------------------------------------"
 printf '%s\n' "$(localize "Create WeChat2.app, WeChat3.app and more from the installed WeChat.app." "从最新版 WeChat.app 创建 WeChat2.app、WeChat3.app 等多个副本。")"
-printf '%s\n' "$(localize "Each copy uses its own Bundle ID and data directory." "每个副本使用独立的 Bundle ID 和数据目录。")"
+printf '%s\n' "$(localize "Each copy uses its own Bundle ID, data directory and icon." "每个副本使用独立的 Bundle ID、数据目录和图标。")"
 printf '%s\n\n' "$(localize "Existing app copies move to Trash only after replacements pass verification." "新副本通过验证后，已有应用副本才会移到废纸篓。")"
 
 if (( EUID == 0 )); then
@@ -96,10 +141,37 @@ if [[ ! "$TOTAL_INSTANCES" =~ '^[2-9]$' ]]; then
   fail "$(localize "Enter one number from 2 through 9." "请输入 2 到 9 之间的一个数字。")"
 fi
 
+printf '\n'
+blue "$(localize 'Copy icons' '副本图标')"
+printf '%s\n' "$(localize '  a. A different icon per copy (default)' '  a. 自动：每个副本使用不同图标（默认）')"
+printf '%s\n' "$(localize '  n. Keep the original WeChat icon' '  n. 保持微信原图标')"
+printf '%s\n' '  1. flat      2. classic   3. minimal   4. blue'
+printf '%s\n' '  5. purple    6. dark      7. gradient'
+printf "$(localize 'Choose an icon option [a/n/1-7]: ' '请选择图标方案 [a/n/1-7]：')"
+read -r ICON_CHOICE
+
+case "$ICON_CHOICE" in
+  ''|a|A) ICON_MODE="rotate" ;;
+  n|N|0) ICON_MODE="none" ;;
+  [1-7]) ICON_MODE="style"; ICON_STYLE="${ICON_STYLES[$ICON_CHOICE]}" ;;
+  *)
+    yellow "$(localize "Unrecognised choice; using a different icon per copy." "无法识别该选项，改为每个副本使用不同图标。")"
+    ICON_MODE="rotate"
+    ;;
+esac
+
+if [[ "$ICON_MODE" != "none" && ! -d "$CUSTOM_ICON_DIR" ]]; then
+  yellow "$(localize "The wechat_icons folder is missing; keeping the original icon." "缺少 wechat_icons 文件夹，保留原图标。")"
+  ICON_MODE="none"
+fi
+
 printf "$(localize '\nThe following copies will be created or rebuilt:\n' '\n将创建或重建以下副本：\n')"
 for (( CLONE_INDEX = 2; CLONE_INDEX <= TOTAL_INSTANCES; CLONE_INDEX++ )); do
   printf '  /Applications/WeChat%s.app\n' "$CLONE_INDEX"
   printf '  %s/Library/Containers/com.tencent.xinWeChat%s\n' "$HOME" "$CLONE_INDEX"
+  if ICON_PREVIEW=$(icon_style_for_index "$CLONE_INDEX"); then
+    printf "$(localize '    icon: %s\n' '    图标：%s\n')" "$ICON_PREVIEW"
+  fi
 done
 printf "$(localize '\nType y and press Return to start; anything else cancels: ' '\n输入 y 并按回车开始，输入其他内容取消：')"
 read -r CONFIRMATION
@@ -119,14 +191,14 @@ BACKUP_APP=""
 
 printf '\n'
 blue "$(localize "Building WeChat${CLONE_INDEX}.app" "正在构建 WeChat${CLONE_INDEX}.app")"
-blue "$(localize "[1/6] Creating a temporary build directory..." "[1/6] 创建临时构建目录…")"
+blue "$(localize "[1/7] Creating a temporary build directory..." "[1/7] 创建临时构建目录…")"
 BUILD_DIR=$(mktemp -d /Applications/.wechat-multi-build.XXXXXX)
 BUILD_APP="$BUILD_DIR/WeChat${CLONE_INDEX}.app"
 
-blue "$(localize "[2/6] Copying the installed WeChat app (may take a few minutes)..." "[2/6] 复制最新版微信（约需数秒至数分钟）…")"
+blue "$(localize "[2/7] Copying the installed WeChat app (may take a few minutes)..." "[2/7] 复制最新版微信（约需数秒至数分钟）…")"
 ditto "$SOURCE_APP" "$BUILD_APP" || fail "$(localize "Could not copy WeChat." "复制微信失败。")"
 
-blue "$(localize "[3/6] Changing the copy's Bundle ID..." "[3/6] 修改副本 Bundle ID…")"
+blue "$(localize "[3/7] Changing the copy's Bundle ID..." "[3/7] 修改副本 Bundle ID…")"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $CLONE_BUNDLE_ID" "$BUILD_APP/Contents/Info.plist" || fail "$(localize "Could not change the Bundle ID." "修改 Bundle ID 失败。")"
 
 ACTUAL_BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$BUILD_APP/Contents/Info.plist")
@@ -134,7 +206,15 @@ if [[ "$ACTUAL_BUNDLE_ID" != "$CLONE_BUNDLE_ID" ]]; then
   fail "$(localize "Bundle ID verification failed." "Bundle ID 校验失败。")"
 fi
 
-blue "$(localize "[4/6] Re-signing the copy and its nested components..." "[4/6] 重新签署副本及其内部组件…")"
+ICON_APPLIED=""
+if ICON_APPLIED=$(icon_style_for_index "$CLONE_INDEX"); then
+  blue "$(localize "[4/7] Applying the ${ICON_APPLIED} icon..." "[4/7] 应用 ${ICON_APPLIED} 图标…")"
+  apply_clone_icon "$ICON_APPLIED" "$BUILD_APP" "$CLONE_INDEX"
+else
+  blue "$(localize "[4/7] Keeping the original WeChat icon." "[4/7] 保留微信原图标…")"
+fi
+
+blue "$(localize "[5/7] Re-signing the copy and its nested components..." "[5/7] 重新签署副本及其内部组件…")"
 # Newer builds put real libraries in Resources and forwarding stubs in
 # Frameworks. Re-signing the stubs alone leaves unresolved runtime targets.
 # Copy only matching payloads supplied by this same app version.
@@ -155,7 +235,7 @@ if ! codesign --force --deep --sign - "$BUILD_APP" >"$BUILD_DIR/codesign.log" 2>
   fail "$(localize "Re-signing failed." "重新签名失败。")"
 fi
 
-blue "$(localize "[5/6] Verifying the new copy..." "[5/6] 严格验证新副本…")"
+blue "$(localize "[6/7] Verifying the new copy..." "[6/7] 严格验证新副本…")"
 if ! codesign --verify --deep --strict --verbose=2 "$BUILD_APP" >"$BUILD_DIR/verify.log" 2>&1; then
   cat "$BUILD_DIR/verify.log" >&2
   fail "$(localize "Signature verification failed. The previous copy has not been replaced." "新副本签名验证失败。旧副本尚未被替换。")"
@@ -202,6 +282,11 @@ if ! mv "$BUILD_APP" "$CLONE_APP"; then
   fail "$(localize "Could not install the new copy; attempted to restore the previous copy." "无法安装新副本；已尝试恢复旧副本。")"
 fi
 
+# Same Bundle ID as the replaced copy, so drop the cached icon for this path.
+if [[ -x "$LSREGISTER" ]]; then
+  "$LSREGISTER" -f "$CLONE_APP" >/dev/null 2>&1 || true
+fi
+
 BUILT_CLONES+=("$CLONE_APP")
 if [[ -n "$BACKUP_APP" ]]; then
   BACKUP_APPS+=("$BACKUP_APP")
@@ -210,7 +295,7 @@ cleanup
 BUILD_DIR=""
 done
 
-blue "$(localize "[6/6] Starting and checking all WeChat instances..." "[6/6] 启动并检查所有微信实例…")"
+blue "$(localize "[7/7] Starting and checking all WeChat instances..." "[7/7] 启动并检查所有微信实例…")"
 open "$SOURCE_APP" || fail "$(localize "Could not launch the original app." "原版微信启动失败。")"
 for CLONE_APP in "${BUILT_CLONES[@]}"; do
   open "$CLONE_APP" || fail "$(localize "Could not launch ${CLONE_APP:t}. Previous copies remain in Trash." "${CLONE_APP:t} 启动失败，旧副本仍在废纸篓中。")"
@@ -257,8 +342,17 @@ fi
 printf '%s\n' "$(localize "If macOS asks for notification, camera or microphone access, grant access as needed." "如果系统询问通知、相机或麦克风权限，请按需要重新授权。")"
 
 printf '\n'
-blue "$(localize "Change copy icons manually" "手动更换副本图标")"
+blue "$(localize "Icons" "图标")"
+if [[ "$ICON_MODE" == "none" ]]; then
+  printf '%s\n' "$(localize "Copies keep the original WeChat icon." "副本保留了微信原图标。")"
+else
+  for (( CLONE_INDEX = 2; CLONE_INDEX <= TOTAL_INSTANCES; CLONE_INDEX++ )); do
+    if ICON_APPLIED=$(icon_style_for_index "$CLONE_INDEX"); then
+      printf "$(localize 'WeChat%s.app icon: %s\n' 'WeChat%s.app 图标：%s\n')" "$CLONE_INDEX" "$ICON_APPLIED"
+    fi
+  done
+fi
 printf "$(localize 'Icon folder: %s\n' '图标文件夹：%s\n')" "$CUSTOM_ICON_DIR"
-printf '%s\n' "$(localize "1. In Applications, right-click a WeChatN.app copy and choose Get Info." "1. 在“应用程序”中右键点击 WeChatN.app 副本，选择“显示简介”。")"
-printf '%s\n' "$(localize "2. Drag an icon from the wechat_icons folder onto the small icon at the top left of the Get Info window to replace it." "2. 将 wechat_icons 文件夹中的图标拖到“显示简介”窗口左上角的小图标上，覆盖原图标。")"
+printf '%s\n' "$(localize "Change one copy later: right-click WeChatN.app in Applications, choose Get Info, then drag any icon from the folder onto the small icon at the top left." "之后单独换图标：在“应用程序”中右键点击 WeChatN.app，选择“显示简介”，把文件夹中的任意图标拖到窗口左上角的小图标上。")"
+printf '%s\n' "$(localize "If Finder or the Dock still shows an old icon, run: killall Dock" "如果访达或程序坞仍显示旧图标，可在终端执行：killall Dock")"
 pause_before_close
