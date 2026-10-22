@@ -2,12 +2,6 @@
 
 set -euo pipefail
 
-# Launched through `curl ... | zsh` stdin holds the script text, so every prompt
-# would hit EOF. Re-point stdin at the terminal when there is one.
-if [[ ! -t 0 ]] && [[ -r /dev/tty ]]; then
-  exec < /dev/tty 2>/dev/null || true
-fi
-
 # Select once per run; all operations below share the same implementation.
 printf '%s\n' '微信多开 / WeChat Multi Launch' '1. 中文（默认）' '2. English'
 printf '%s' '选择语言 / Choose language [1/2]: '

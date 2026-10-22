@@ -22,7 +22,7 @@ macOS 微信多开脚本，支持中文 / English，可按总开数创建或重�
 zsh -c "$(curl -fsSL https://raw.githubusercontent.com/yueshaosheng/wechat-multi-launch/main/WeChat-Multi-Launch.command)"
 ```
 
-粘贴到“终端”里按回车即可，不用先下载安装包。首次运行会把图标文件下载到 `~/.cache/wechat-multi-launch`，之后直接复用；拿不到图标时副本保留微信原图标，不影响多开。
+粘贴到“终端”里按回车即可，不用先下载安装包。请保持这个 `zsh -c "$(curl …)"` 形式，不要写成 `curl … | zsh`：后者会让脚本里的交互提示读不到键盘输入。首次运行会把图标文件下载到 `~/.cache/wechat-multi-launch`，之后直接复用；拿不到图标时副本保留微信原图标，不影响多开。
 
 ### 方式二：下载安装包
 

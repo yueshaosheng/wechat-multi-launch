@@ -22,7 +22,7 @@ A macOS script to create or rebuild multiple copies from `WeChat2.app` through `
 zsh -c "$(curl -fsSL https://raw.githubusercontent.com/yueshaosheng/wechat-multi-launch/main/WeChat-Multi-Launch.command)"
 ```
 
-Paste it into Terminal and press Return — no download needed. The first run fetches the icon files into `~/.cache/wechat-multi-launch` and reuses them afterwards; if they cannot be fetched, copies keep the original WeChat icon and multi-launch still works.
+Paste it into Terminal and press Return — no download needed. Keep the `zsh -c "$(curl …)"` form: `curl … | zsh` makes the script's prompts read from the script text instead of your keyboard. The first run fetches the icon files into `~/.cache/wechat-multi-launch` and reuses them afterwards; if they cannot be fetched, copies keep the original WeChat icon and multi-launch still works.
 
 ### Option 2: release package
 
