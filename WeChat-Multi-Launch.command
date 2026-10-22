@@ -2,6 +2,12 @@
 
 set -euo pipefail
 
+# Launched through `curl ... | zsh` stdin holds the script text, so every prompt
+# would hit EOF. Re-point stdin at the terminal when there is one.
+if [[ ! -t 0 ]] && [[ -r /dev/tty ]]; then
+  exec < /dev/tty 2>/dev/null || true
+fi
+
 # Select once per run; all operations below share the same implementation.
 printf '%s\n' '微信多开 / WeChat Multi Launch' '1. 中文（默认）' '2. English'
 printf '%s' '选择语言 / Choose language [1/2]: '
@@ -19,6 +25,9 @@ localize() {
 SOURCE_APP="/Applications/WeChat.app"
 SCRIPT_DIR="${0:A:h}"
 CUSTOM_ICON_DIR="$SCRIPT_DIR/wechat_icons"
+# Used when the script runs without the downloaded package, e.g. one-liner mode.
+REPO_ICON_ARCHIVE="https://github.com/yueshaosheng/wechat-multi-launch/archive/refs/heads/main.tar.gz"
+ICON_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/wechat-multi-launch"
 # Icon files ship as wechat_<style>.icns; order here is the rotation order.
 ICON_STYLES=(flat classic minimal blue purple dark gradient)
 ICON_MODE="rotate"
@@ -107,6 +116,57 @@ apply_clone_icon() {
   fi
 }
 
+# One-liner runs have no local wechat_icons folder. Resolve it from the script
+# directory first, then from the cache, and only then fetch the archive once.
+resolve_icon_dir() {
+  local candidate
+  local -a found
+  for candidate in "$CUSTOM_ICON_DIR" "$ICON_CACHE_DIR/wechat_icons"; do
+    found=("$candidate"/wechat-*.icns(N))
+    if (( ${#found} > 0 )); then
+      CUSTOM_ICON_DIR="$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+download_icons() {
+  command -v curl >/dev/null 2>&1 || return 1
+  command -v tar >/dev/null 2>&1 || return 1
+
+  local staging="$ICON_CACHE_DIR/.staging.$$"
+  local -a extracted
+  mkdir -p "$staging" || return 1
+
+  if ! curl -fsSL --max-time 90 "$REPO_ICON_ARCHIVE" -o "$staging/archive.tar.gz"; then
+    rm -rf -- "$staging"
+    return 1
+  fi
+
+  if ! tar -xzf "$staging/archive.tar.gz" -C "$staging" 2>/dev/null; then
+    rm -rf -- "$staging"
+    return 1
+  fi
+
+  extracted=("$staging"/*/wechat_icons(N))
+  if (( ${#extracted} == 0 )); then
+    rm -rf -- "$staging"
+    return 1
+  fi
+
+  mkdir -p "$ICON_CACHE_DIR" || { rm -rf -- "$staging"; return 1; }
+  rm -rf -- "$ICON_CACHE_DIR/wechat_icons"
+  if ! mv "${extracted[1]}" "$ICON_CACHE_DIR/wechat_icons"; then
+    rm -rf -- "$staging"
+    return 1
+  fi
+
+  rm -rf -- "$staging"
+  CUSTOM_ICON_DIR="$ICON_CACHE_DIR/wechat_icons"
+  return 0
+}
+
 trap cleanup EXIT INT TERM
 
 printf '\033c'
@@ -142,6 +202,15 @@ if [[ ! "$TOTAL_INSTANCES" =~ '^[2-9]$' ]]; then
 fi
 
 printf '\n'
+if ! resolve_icon_dir; then
+  printf "$(localize 'Fetching icon files from the repository...\n' '正在从仓库获取图标资源…\n')"
+  if download_icons; then
+    green "$(localize 'Icon files ready.' '图标资源已就绪。')"
+  else
+    yellow "$(localize 'Could not fetch the icon files; copies will keep the original icon.' '获取图标资源失败，副本将保留原图标。')"
+  fi
+fi
+
 blue "$(localize 'Copy icons' '副本图标')"
 printf '%s\n' "$(localize '  a. A different icon per copy (default)' '  a. 自动：每个副本使用不同图标（默认）')"
 printf '%s\n' "$(localize '  n. Keep the original WeChat icon' '  n. 保持微信原图标')"

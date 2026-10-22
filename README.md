@@ -16,13 +16,23 @@ macOS 微信多开脚本，支持中文 / English，可按总开数创建或重�
 
 ## 使用方法
 
+### 方式一：一行命令
+
+```sh
+zsh -c "$(curl -fsSL https://raw.githubusercontent.com/yueshaosheng/wechat-multi-launch/main/WeChat-Multi-Launch.command)"
+```
+
+粘贴到“终端”里按回车即可，不用先下载安装包。首次运行会把图标文件下载到 `~/.cache/wechat-multi-launch`，之后直接复用；拿不到图标时副本保留微信原图标，不影响多开。
+
+### 方式二：下载安装包
+
 1. 从 [Releases](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest) 下载并解压安装包，双击 `WeChat-Multi-Launch.command`。
 2. 选择语言：`1` 中文（默认），`2` English。
 3. 输入总开数 `2`～`9`（包含原版）。
 4. 选择副本图标：`a` 自动轮换（默认，每个副本一种配色）、`n` 保持微信原图标，或输入 `1`～`7` 指定一种配色给所有副本。
 5. 输入 `y` 开始。例如输入 `4` 会创建或重建 `WeChat2.app`、`WeChat3.app` 和 `WeChat4.app`。
 
-无需提前删除旧副本，也无需 `sudo`。若无法双击运行，在终端输入 `zsh `，拖入脚本后按回车。
+两种方式都需要联网（方式一还需能访问 `raw.githubusercontent.com`，方式二需要能访问 Releases）。无需提前删除旧副本，也无需 `sudo`。若下载的脚本无法双击运行，在终端输入 `zsh `，拖入脚本后按回车。
 
 ## 工作原理
 
@@ -42,7 +52,7 @@ macOS 微信多开脚本，支持中文 / English，可按总开数创建或重�
 
 ## 图标
 
-`wechat_icons` 中有 7 种配色。自动模式下按副本编号依次分配：`WeChat2.app` 用 `flat`、`WeChat3.app` 用 `classic`、`WeChat4.app` 用 `minimal`、`WeChat5.app` 用 `blue`、`WeChat6.app` 用 `purple`、`WeChat7.app` 用 `dark`、`WeChat8.app` 用 `gradient`；副本多于 7 个时会从头循环，因此 `WeChat9.app` 与 `WeChat2.app` 同为 `flat`。
+`wechat_icons` 中有 7 种配色，一行命令运行时自动下载到 `~/.cache/wechat-multi-launch/wechat_icons`，可直接删除该目录让它重新获取。自动模式下按副本编号依次分配：`WeChat2.app` 用 `flat`、`WeChat3.app` 用 `classic`、`WeChat4.app` 用 `minimal`、`WeChat5.app` 用 `blue`、`WeChat6.app` 用 `purple`、`WeChat7.app` 用 `dark`、`WeChat8.app` 用 `gradient`；副本多于 7 个时会从头循环，因此 `WeChat9.app` 与 `WeChat2.app` 同为 `flat`。
 
 之后想单独换图标：在“应用程序”中右键点击 `WeChatN.app` → **显示简介**，将 `wechat_icons` 中任意图标拖到简介窗口左上角的小图标上覆盖。整理图标后重新运行脚本会按所选方案重建图标。
 
