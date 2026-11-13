@@ -22,17 +22,11 @@ A macOS tool to create or rebuild multiple copies from `WeChat2.app` through `We
 zsh -c "$(curl -fsSL https://raw.githubusercontent.com/yueshaosheng/wechat-multi-launch/main/WeChat-Multi-Launch.command)"
 ```
 
-Paste it into Terminal and press Return — no download needed. Keep the `zsh -c "$(curl …)"` form: `curl … | zsh` makes the script's prompts read from the script text instead of your keyboard. The first run fetches the icon files into `~/.cache/wechat-multi-launch` and reuses them afterwards; if they cannot be fetched, copies keep the original WeChat icon and multi-launch still works.
+Paste it into Terminal and follow the on-screen prompts.
 
 ### Option 2: download the GUI
 
-1. Download `WeChat-Multi-Launch-GUI-*.dmg` from [Releases](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest), open it, and drag `WeChat Multi Launch.app` onto the `Applications` folder beside it to install.
-2. If Gatekeeper blocks the first launch, right-click the app → **Open** → **Open** again (ad-hoc signed, not notarized).
-3. Pick the language, total instance count (2–9) and icon option (rotate with drag-to-reorder, one colour, or original) in the window, then click **Create / Rebuild Copies**. Progress and the log update live.
-
-The GUI embeds the same script and icons and runs **offline**; its behaviour is identical to the command line. You can also build it from source: with Xcode installed, run `zsh gui/build-app.sh`; the result is `gui/build/WeChat Multi Launch.app`.
-
-Neither method requires deleting existing copies first or using `sudo`. Option 1 needs access to `raw.githubusercontent.com`; option 2 needs access to Releases.
+Download the DMG from [Releases](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest) and install the GUI.
 
 ## How it works
 

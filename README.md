@@ -22,17 +22,11 @@ macOS 微信多开工具，支持中文 / English，可按总开数创建或重�
 zsh -c "$(curl -fsSL https://raw.githubusercontent.com/yueshaosheng/wechat-multi-launch/main/WeChat-Multi-Launch.command)"
 ```
 
-粘贴到“终端”里按回车即可，不用先下载安装包。请保持这个 `zsh -c "$(curl …)"` 形式，不要写成 `curl … | zsh`：后者会让脚本里的交互提示读不到键盘输入。首次运行会把图标文件下载到 `~/.cache/wechat-multi-launch`，之后直接复用；拿不到图标时副本保留微信原图标，不影响多开。
+粘贴到“终端”里按回车，按命令行提示操作即可。
 
 ### 方法二：下载图形界面（GUI）
 
-1. 从 [Releases](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest) 下载 `WeChat-Multi-Launch-GUI-*.dmg`，双击打开，把 `WeChat Multi Launch.app` 拖到旁边的 `Applications` 文件夹即完成安装。
-2. 首次打开若被 Gatekeeper 拦截，右键点击 App → **打开** → 再点 **打开**（ad-hoc 签名、未公证应用）。
-3. 在窗口里选择语言、总开数（2–9）和图标方案（自动轮换可拖拽排序、统一配色、原图标），点 **创建 / 重建副本**，进度与日志实时显示。
-
-GUI 内嵌同一份脚本与图标，**离线运行**，逻辑与命令行版完全一致。也可从源码构建：安装 Xcode 后运行 `zsh gui/build-app.sh`，产物在 `gui/build/WeChat Multi Launch.app`。
-
-两种方法都无需提前删除旧副本，也无需 `sudo`。方法一需能访问 `raw.githubusercontent.com`，方法二需能访问 Releases。
+从 [Releases](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest) 下载 DMG 并安装 GUI 即可。
 
 ## 工作原理
 
