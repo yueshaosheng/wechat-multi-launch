@@ -26,6 +26,7 @@ ICON_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/wechat-multi-launch"
 ICON_STYLES=(flat classic minimal blue purple dark gradient)
 ICON_MODE="rotate"
 ICON_STYLE=""
+ICON_ORDER=()
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 BUILD_DIR=""
 BUILD_APP=""
@@ -78,6 +79,13 @@ icon_style_for_index() {
   case "$ICON_MODE" in
     none)  return 1 ;;
     style) printf '%s' "$ICON_STYLE" ;;
+    order) slot=$(( index - 1 ))
+           if (( slot >= 1 && slot <= ${#ICON_ORDER[@]} )); then
+             printf '%s' "${ICON_ORDER[$slot]}"
+           else
+             slot=$(( ((index - 2) % ${#ICON_STYLES[@]}) + 1 ))
+             printf '%s' "${ICON_STYLES[$slot]}"
+           fi ;;
     *)     slot=$(( ((index - 2) % ${#ICON_STYLES[@]}) + 1 ))
            printf '%s' "${ICON_STYLES[$slot]}" ;;
   esac
@@ -216,6 +224,19 @@ read -r ICON_CHOICE
 case "$ICON_CHOICE" in
   ''|a|A) ICON_MODE="rotate" ;;
   n|N|0) ICON_MODE="none" ;;
+  o:*)
+    # Custom per-copy order, e.g. o:3,1,2 (GUI drag-and-drop). Each number is a
+    # style index 1-7 assigned to WeChat2, WeChat3, ... in sequence.
+    ICON_MODE="order"
+    ICON_ORDER=()
+    ORDER_REST="${ICON_CHOICE#o:}"
+    for ORDER_PART in ${(s:,:)ORDER_REST}; do
+      if [[ "$ORDER_PART" =~ '^[1-7]$' ]]; then
+        ICON_ORDER+=("${ICON_STYLES[$ORDER_PART]}")
+      fi
+    done
+    (( ${#ICON_ORDER[@]} > 0 )) || ICON_MODE="rotate"
+    ;;
   [1-7]) ICON_MODE="style"; ICON_STYLE="${ICON_STYLES[$ICON_CHOICE]}" ;;
   *)
     yellow "$(localize "Unrecognised choice; using a different icon per copy." "无法识别该选项，改为每个副本使用不同图标。")"

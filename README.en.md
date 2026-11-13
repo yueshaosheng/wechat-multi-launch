@@ -6,13 +6,13 @@
 
 [简体中文](README.md) | **English**
 
-A macOS script to create or rebuild multiple copies from `WeChat2.app` through `WeChat9.app`, with Chinese and English prompts and an automatic alternate icon for every copy.
+A macOS tool to create or rebuild multiple copies from `WeChat2.app` through `WeChat9.app`, with Chinese and English prompts and an automatic alternate icon for every copy. Available as a command-line script or a native graphical app (GUI).
 
 ## Platform
 
 - **macOS only.** Not for Windows, Linux, iOS or Android.
 - Install the original app at `/Applications/WeChat.app`. Your account needs write access to Applications.
-- **Verified version: WeChat for Mac 4.2.0 with v1.2.1**; 4.1.15 was verified previously. Tested on macOS 26.3 / Apple Silicon. Messaging, calls and other features have not been fully tested.
+- **Verified version: WeChat for Mac 4.2.0 with v1.3.0**. Tested on macOS 26.3 / Apple Silicon. Messaging, calls and other features have not been fully tested.
 
 ## Usage
 
@@ -24,15 +24,15 @@ zsh -c "$(curl -fsSL https://raw.githubusercontent.com/yueshaosheng/wechat-multi
 
 Paste it into Terminal and press Return — no download needed. Keep the `zsh -c "$(curl …)"` form: `curl … | zsh` makes the script's prompts read from the script text instead of your keyboard. The first run fetches the icon files into `~/.cache/wechat-multi-launch` and reuses them afterwards; if they cannot be fetched, copies keep the original WeChat icon and multi-launch still works.
 
-### Option 2: release package
+### Option 2: download the GUI
 
-1. Download and extract the package from [Releases](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest), then double-click `WeChat-Multi-Launch.command`.
-2. Select `1` for Chinese (default) or `2` for English.
-3. Enter a total instance count from `2` through `9`, including the original.
-4. Choose the copy icons: `a` rotates a different icon per copy (default), `n` keeps the original WeChat icon, or `1`–`7` applies one colour to every copy.
-5. Enter `y`. For example, `4` creates or rebuilds `WeChat2.app`, `WeChat3.app` and `WeChat4.app`.
+1. Download `WeChat-Multi-Launch-GUI-*.dmg` from [Releases](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest), open it, and drag `WeChat Multi Launch.app` onto the `Applications` folder beside it to install.
+2. If Gatekeeper blocks the first launch, right-click the app → **Open** → **Open** again (ad-hoc signed, not notarized).
+3. Pick the language, total instance count (2–9) and icon option (rotate with drag-to-reorder, one colour, or original) in the window, then click **Create / Rebuild Copies**. Progress and the log update live.
 
-Both options need network access (option 1 reaches `raw.githubusercontent.com`, option 2 reaches Releases). You do not need to delete the existing copy first or use `sudo`. If the downloaded script does not launch on double-click, type `zsh ` in Terminal, drag in the script, and press Return.
+The GUI embeds the same script and icons and runs **offline**; its behaviour is identical to the command line. You can also build it from source: with Xcode installed, run `zsh gui/build-app.sh`; the result is `gui/build/WeChat Multi Launch.app`.
+
+Neither method requires deleting existing copies first or using `sudo`. Option 1 needs access to `raw.githubusercontent.com`; option 2 needs access to Releases.
 
 ## How it works
 
@@ -40,7 +40,7 @@ For every requested copy, the script copies the original app, assigns a `com.ten
 
 Icons are written before signing, so the ad-hoc signature covers them. Each copy sets `CFBundleIconFile = WeChatNIcon` and drops `CFBundleIconName`, which would otherwise keep pointing at the original icon inside `Assets.car`.
 
-The script copies matching runtime libraries from Resources into Frameworks, replacing forwarding stubs that fail after re-signing, and explicitly signs and verifies runtime libraries in Resources (verified on 4.1.15 / 4.2.0).
+The script copies matching runtime libraries from Resources into Frameworks, replacing forwarding stubs that fail after re-signing, and explicitly signs and verifies runtime libraries in Resources (verified on 4.2.0).
 
 The copy uses ad-hoc signing and does not preserve Tencent's developer identity, original entitlements or Hardened Runtime configuration. Security protections and some features may be affected; a separate data directory does not imply the original sandbox isolation.
 

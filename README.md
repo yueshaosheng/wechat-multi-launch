@@ -6,17 +6,17 @@
 
 **简体中文** | [English](README.en.md)
 
-macOS 微信多开脚本，支持中文 / English，可按总开数创建或重建 `WeChat2.app` 至 `WeChat9.app`，并自动为每个副本换上不同颜色的图标。
+macOS 微信多开工具，支持中文 / English，可按总开数创建或重建 `WeChat2.app` 至 `WeChat9.app`，并自动为每个副本换上不同颜色的图标。提供命令行与原生图形界面（GUI）两种用法。
 
 ## 适用平台
 
 - **仅适用于 macOS**，不适用于 Windows、Linux、iOS 或 Android。
 - 原版微信需安装在 `/Applications/WeChat.app`，当前账户需有“应用程序”目录的写入权限。
-- **已验证微信版本：Mac 微信 4.2.0（v1.2.1）**，4.1.15 亦验证通过。测试环境为 macOS 26.3 / Apple Silicon；未全面验证消息收发及音视频等功能。
+- **已验证微信版本：Mac 微信 4.2.0（v1.3.0）**。测试环境为 macOS 26.3 / Apple Silicon；未全面验证消息收发及音视频等功能。
 
 ## 使用方法
 
-### 方式一：一行命令
+### 方法一：一行命令
 
 ```sh
 zsh -c "$(curl -fsSL https://raw.githubusercontent.com/yueshaosheng/wechat-multi-launch/main/WeChat-Multi-Launch.command)"
@@ -24,15 +24,15 @@ zsh -c "$(curl -fsSL https://raw.githubusercontent.com/yueshaosheng/wechat-multi
 
 粘贴到“终端”里按回车即可，不用先下载安装包。请保持这个 `zsh -c "$(curl …)"` 形式，不要写成 `curl … | zsh`：后者会让脚本里的交互提示读不到键盘输入。首次运行会把图标文件下载到 `~/.cache/wechat-multi-launch`，之后直接复用；拿不到图标时副本保留微信原图标，不影响多开。
 
-### 方式二：下载安装包
+### 方法二：下载图形界面（GUI）
 
-1. 从 [Releases](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest) 下载并解压安装包，双击 `WeChat-Multi-Launch.command`。
-2. 选择语言：`1` 中文（默认），`2` English。
-3. 输入总开数 `2`～`9`（包含原版）。
-4. 选择副本图标：`a` 自动轮换（默认，每个副本一种配色）、`n` 保持微信原图标，或输入 `1`～`7` 指定一种配色给所有副本。
-5. 输入 `y` 开始。例如输入 `4` 会创建或重建 `WeChat2.app`、`WeChat3.app` 和 `WeChat4.app`。
+1. 从 [Releases](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest) 下载 `WeChat-Multi-Launch-GUI-*.dmg`，双击打开，把 `WeChat Multi Launch.app` 拖到旁边的 `Applications` 文件夹即完成安装。
+2. 首次打开若被 Gatekeeper 拦截，右键点击 App → **打开** → 再点 **打开**（ad-hoc 签名、未公证应用）。
+3. 在窗口里选择语言、总开数（2–9）和图标方案（自动轮换可拖拽排序、统一配色、原图标），点 **创建 / 重建副本**，进度与日志实时显示。
 
-两种方式都需要联网（方式一还需能访问 `raw.githubusercontent.com`，方式二需要能访问 Releases）。无需提前删除旧副本，也无需 `sudo`。若下载的脚本无法双击运行，在终端输入 `zsh `，拖入脚本后按回车。
+GUI 内嵌同一份脚本与图标，**离线运行**，逻辑与命令行版完全一致。也可从源码构建：安装 Xcode 后运行 `zsh gui/build-app.sh`，产物在 `gui/build/WeChat Multi Launch.app`。
+
+两种方法都无需提前删除旧副本，也无需 `sudo`。方法一需能访问 `raw.githubusercontent.com`，方法二需能访问 Releases。
 
 ## 工作原理
 
@@ -40,7 +40,7 @@ zsh -c "$(curl -fsSL https://raw.githubusercontent.com/yueshaosheng/wechat-multi
 
 图标在签名之前写入，因此会被纳入 ad-hoc 签名。副本的 `Info.plist` 使用 `CFBundleIconFile = WeChatNIcon`，并移除指向 `Assets.car` 的 `CFBundleIconName`，避免系统继续显示原版图标。
 
-脚本将 Resources 中同版本的实际运行库复制到 Frameworks 对应位置，替换重签后无法正常工作的转发库，并单独签名验证 Resources 中的运行库（4.1.15 / 4.2.0 已验证）。
+脚本将 Resources 中同版本的实际运行库复制到 Frameworks 对应位置，替换重签后无法正常工作的转发库，并单独签名验证 Resources 中的运行库（4.2.0 已验证）。
 
 副本使用 ad-hoc 临时签名，不保留腾讯的开发者签名、原版权限声明和 Hardened Runtime 配置。安全保护及部分功能可能受影响，独立数据目录不等于原版沙盒隔离。
 
