@@ -1,7 +1,7 @@
 # 微信多开
 
 ![Platform: macOS](https://img.shields.io/badge/platform-macOS-black?logo=apple)
-![Verified WeChat: 4.1.15](https://img.shields.io/badge/WeChat-4.1.15_verified-07C160?logo=wechat&logoColor=white)
+![Verified WeChat: 4.2.0](https://img.shields.io/badge/WeChat-4.2.0_verified-07C160?logo=wechat&logoColor=white)
 [![Latest release](https://img.shields.io/github/v/release/yueshaosheng/wechat-multi-launch)](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest)
 
 **简体中文** | [English](README.en.md)
@@ -12,7 +12,7 @@ macOS 微信多开脚本，支持中文 / English，可按总开数创建或重�
 
 - **仅适用于 macOS**，不适用于 Windows、Linux、iOS 或 Android。
 - 原版微信需安装在 `/Applications/WeChat.app`，当前账户需有“应用程序”目录的写入权限。
-- **已验证微信版本：Mac 微信 4.1.15（v1.2.0）**，测试环境为 macOS 26.3 / Apple Silicon。已实际创建并同时运行原版、`WeChat2.app` 和 `WeChat3.app`，两个副本使用独立 Bundle ID 和数据目录；未全面验证消息收发及音视频等功能。
+- **已验证微信版本：Mac 微信 4.2.0（v1.2.1）**，4.1.15 亦验证通过。测试环境为 macOS 26.3 / Apple Silicon；未全面验证消息收发及音视频等功能。
 
 ## 使用方法
 
@@ -40,7 +40,7 @@ zsh -c "$(curl -fsSL https://raw.githubusercontent.com/yueshaosheng/wechat-multi
 
 图标在签名之前写入，因此会被纳入 ad-hoc 签名。副本的 `Info.plist` 使用 `CFBundleIconFile = WeChatNIcon`，并移除指向 `Assets.car` 的 `CFBundleIconName`，避免系统继续显示原版图标。
 
-针对 4.1.15，脚本将 Resources 中同版本的实际运行库复制到 Frameworks 对应位置，替换重签后无法正常工作的转发库，并单独签名验证 Resources 中的运行库。
+脚本将 Resources 中同版本的实际运行库复制到 Frameworks 对应位置，替换重签后无法正常工作的转发库，并单独签名验证 Resources 中的运行库（4.1.15 / 4.2.0 已验证）。
 
 副本使用 ad-hoc 临时签名，不保留腾讯的开发者签名、原版权限声明和 Hardened Runtime 配置。安全保护及部分功能可能受影响，独立数据目录不等于原版沙盒隔离。
 

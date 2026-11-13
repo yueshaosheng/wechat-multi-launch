@@ -1,7 +1,7 @@
 # WeChat Multi Launch
 
 ![Platform: macOS](https://img.shields.io/badge/platform-macOS-black?logo=apple)
-![Verified WeChat: 4.1.15](https://img.shields.io/badge/WeChat-4.1.15_verified-07C160?logo=wechat&logoColor=white)
+![Verified WeChat: 4.2.0](https://img.shields.io/badge/WeChat-4.2.0_verified-07C160?logo=wechat&logoColor=white)
 [![Latest release](https://img.shields.io/github/v/release/yueshaosheng/wechat-multi-launch)](https://github.com/yueshaosheng/wechat-multi-launch/releases/latest)
 
 [简体中文](README.md) | **English**
@@ -12,7 +12,7 @@ A macOS script to create or rebuild multiple copies from `WeChat2.app` through `
 
 - **macOS only.** Not for Windows, Linux, iOS or Android.
 - Install the original app at `/Applications/WeChat.app`. Your account needs write access to Applications.
-- **Verified version: WeChat for Mac 4.1.15 with v1.2.0**, on macOS 26.3 / Apple Silicon. The original, `WeChat2.app` and `WeChat3.app` were created and run concurrently, with separate Bundle IDs and data directories. Messaging, calls and other features have not been fully tested.
+- **Verified version: WeChat for Mac 4.2.0 with v1.2.1**; 4.1.15 was verified previously. Tested on macOS 26.3 / Apple Silicon. Messaging, calls and other features have not been fully tested.
 
 ## Usage
 
@@ -40,7 +40,7 @@ For every requested copy, the script copies the original app, assigns a `com.ten
 
 Icons are written before signing, so the ad-hoc signature covers them. Each copy sets `CFBundleIconFile = WeChatNIcon` and drops `CFBundleIconName`, which would otherwise keep pointing at the original icon inside `Assets.car`.
 
-For 4.1.15, the script copies matching runtime libraries from Resources into Frameworks, replacing forwarding stubs that failed after re-signing. It also explicitly signs and verifies runtime libraries in Resources.
+The script copies matching runtime libraries from Resources into Frameworks, replacing forwarding stubs that fail after re-signing, and explicitly signs and verifies runtime libraries in Resources (verified on 4.1.15 / 4.2.0).
 
 The copy uses ad-hoc signing and does not preserve Tencent's developer identity, original entitlements or Hardened Runtime configuration. Security protections and some features may be affected; a separate data directory does not imply the original sandbox isolation.
 
