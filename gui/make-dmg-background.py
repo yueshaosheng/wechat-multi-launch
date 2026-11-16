@@ -15,10 +15,20 @@ for y in range(H):
     ImageDraw.Draw(img).line([(0, y), (W, y)], fill=row)
 
 d = ImageDraw.Draw(img)
-teal = (10, 158, 143)
 y = 190
-d.line([(240, y), (400, y)], fill=teal, width=10)
-d.polygon([(400, y - 22), (400, y + 22), (432, y)], fill=teal)
+# Gradient arrow: teal at the tail fading to bright green at the head.
+mask = Image.new("L", (W, H), 0)
+md = ImageDraw.Draw(mask)
+md.line([(240, y), (400, y)], fill=255, width=10)
+md.polygon([(400, y - 22), (400, y + 22), (432, y)], fill=255)
+grad = Image.new("RGB", (W, H))
+gd = ImageDraw.Draw(grad)
+c0 = (10, 158, 143)
+c1 = (52, 211, 153)
+for x in range(W):
+    t = min(1.0, max(0.0, (x - 240) / (432 - 240)))
+    gd.line([(x, 0), (x, H)], fill=tuple(int(c0[i] + (c1[i] - c0[i]) * t) for i in range(3)))
+img.paste(grad, (0, 0), mask)
 
 
 def font(size):

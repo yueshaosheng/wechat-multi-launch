@@ -33,16 +33,14 @@ tell application "Finder"
     set current view of container window to icon view
     set toolbar visible of container window to false
     set statusbar visible of container window to false
-    set the bounds of container window to {100, 100, 760, 542}
+    set pathbar visible of container window to false
     set the icon size of the icon view options of container window to 128
     set the arrangement of the icon view options of container window to not arranged
     set the background picture of the icon view options of container window to (POSIX file "$MOUNT/.background/background.png" as alias)
     set position of item "WeChat Multi Launch.app" of container window to {150, 190}
     set position of item "Applications" of container window to {510, 190}
-    close
-    open
-    update without registering applications
-    delay 1
+    set the bounds of container window to {100, 100, 760, 548}
+    delay 0.5
     close
   end tell
 end tell
@@ -54,7 +52,7 @@ fi
 sync
 hdiutil detach "$DEVICE" >/dev/null
 print "Compressing..."
-hdiutil convert "$RW" -format UDZO -imagekey zlib-level=9 -o "$OUT" >/dev/null
+hdiutil convert "$RW" -format UDZO -imagekey zlib-level=9 -ov -o "$OUT" >/dev/null
 rm -f "$RW"
 rm -rf "$STAGE"
 print "Done: $OUT"
